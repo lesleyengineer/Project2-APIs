@@ -67,12 +67,15 @@ def create_app(test_config=None):
             if len(questions) == 0:
                 abort(404)
             category_options = {}
-            categories = Category.query.all
+            categories = Category.query.all()
             for category in categories:
                 category_options[category.id] = category.type
             return jsonify({
                 'success': True,
-                'categories': category_options
+                'questions': questions,
+                'categories': category_options,
+                'total_questions': len(Question.query.all()),
+                'current_category': None
             })
         except Exception as e:
             print(e)
@@ -103,7 +106,10 @@ def create_app(test_config=None):
             abort(404)
         else:
             question.delete()
-        return jsonify()
+        return jsonify({
+            'success': True,
+            'deleted': id
+        })
 
     """
     TEST: When you click the trash icon next to a question, the question will be removed.
@@ -120,13 +126,13 @@ def create_app(test_config=None):
     the form will clear and the question will appear at the end of the last page
     of the questions list in the "List" tab.
     """
-    @app.route('/questions/submit', methods=['POST'])
+    @app.route('/questions', methods=['POST'])
     def post_question():
         body = request.get_json()
         new_question = body.get('question', None)
         new_answer = body.get('answer', None)
-        new_difficulty = body.get('difficulty', None)
         new_category = body.get('category', None)
+        new_difficulty = body.get('difficulty', None)
 
         if (new_question is None or new_answer is None or new_difficulty is None or new_category is None):
             abort(404)
@@ -134,7 +140,9 @@ def create_app(test_config=None):
         question = Question(question=new_question, answer=new_answer,
                             difficulty=new_difficulty, category=new_category)
 
-        return jsonify()
+        return jsonify({
+            'success': True
+        })
 
     """
     @TODO:
@@ -171,7 +179,7 @@ def create_app(test_config=None):
     categories in the left column will cause only questions of that
     category to be shown.
     """
-    @app.route('/category/<int:id>', methods=['GET'])
+    @app.route('/categories/<int:id>', methods=['GET'])
     def questions_by_category(id):
         category = Category.query.filter(Category.id == id).all()
         questions = Question.query.filter(Question.category == id).all()
@@ -199,7 +207,7 @@ def create_app(test_config=None):
     and shown whether they were correct or not.
     """
 
-    @app.route('/quiz', methods=['POST'])
+    @app.route('/quizzes', methods=['POST'])
     def quiz():
         body = request.get_json()
 
@@ -223,7 +231,7 @@ def create_app(test_config=None):
     including 404 and 422
     """
 
-    @ app.error_handler(400)
+    @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
             'error': 400,
@@ -231,7 +239,7 @@ def create_app(test_config=None):
             'success': 'false'
         })
 
-    @ app.error_handler(404)
+    @app.errorhandler(404)
     def not_found(error):
         return jsonify({
             'error': 404,
@@ -239,7 +247,7 @@ def create_app(test_config=None):
             'success': 'false'
         })
 
-    @ app.error_handler(422)
+    @app.errorhandler(422)
     def unprocessable_content(error):
         return jsonify({
             'error': 422,
@@ -247,7 +255,7 @@ def create_app(test_config=None):
             'success': 'false'
         })
 
-    @ app.error_handler(500)
+    @app.errorhandler(500)
     def internal_server_error(error):
         return jsonify({
             'error': 500,
